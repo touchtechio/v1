@@ -1,0 +1,327 @@
+
+/* (c) Intel Corporation 2015, All Rights Reserved */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
+
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include <math.h>
+
+#include <signal.h>
+#include <pthread.h>
+
+#include "parse.h"
+
+#include "common.h"
+#include <iostream>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/stitching/stitcher.hpp"
+
+#include <sys/time.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+
+using namespace cv;
+
+#define VIS_SERVER_PORT 1236
+
+#define NUM_ENTRIES 1024
+
+pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define LOCK_CL_INFO() pthread_mutex_lock(&client_mutex)
+#define UNLOCK_CL_INFO() pthread_mutex_unlock(&client_mutex)
+
+
+typedef struct camera_info_t {
+	analyzed_color_t color_info[7];
+	char map[NUM_HORIZ_CELLS * NUM_VERT_CELLS];	
+	int frame_id;
+	struct timeval tv_start;
+} camera_info_t;
+
+typedef struct client_info_t {
+	int valid;
+	camera_info_t camera_info[NUM_CAMERAS_PER_HUB];
+} client_info_t;
+
+
+volatile int client_info_updated = 0;
+client_info_t client_info[NUM_ENTRIES];
+
+
+#define VIS_WINDOW "Visualization"
+
+
+#define VIS_WIDTH 1280
+#define VIS_HEIGHT 720
+
+//#define PER_CLIENT_W 200
+//#define PER_CLIENT_H 120 
+
+#define PER_CLIENT_W (200*2)
+#define PER_CLIENT_H (120*2)
+
+#define X_PADDING 10
+#define Y_PADDING 20
+
+static void __get_visual_offset(int client_id, int camera_id, int *x_offset, int *y_offset)
+{
+	int x;
+	int y;
+
+	int index;
+	int divider;
+
+	index = (client_id - 5) * NUM_CAMERAS_PER_HUB + camera_id;
+
+	divider = VIS_WIDTH / ((PER_CLIENT_W + X_PADDING));
+
+	divider &= 0xFFFFFFFE;
+
+	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + X_PADDING;
+	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + Y_PADDING;
+
+	*x_offset = x;
+	*y_offset = y;
+
+	return;
+	
+}
+
+void* vis_function(void *data)
+{
+	int i;
+	client_info_t *client;
+	Mat vis_mat;
+	int x_offset;
+	int y_offset;
+
+	char cl_msg[100];
+	int cam_id;
+	
+	int cell_w;
+	int cell_h;
+
+	cell_w = PER_CLIENT_W / NUM_HORIZ_CELLS;
+	cell_h = PER_CLIENT_H / NUM_VERT_CELLS;
+
+	while (1) {
+
+
+		LOCK_CL_INFO();
+
+		// Quick polling way -- use signal/mutex instead
+		if (client_info_updated == 0) {
+
+			UNLOCK_CL_INFO();
+			usleep(10000); 
+			continue;
+		}
+
+		
+		client_info_updated = 0;
+
+		vis_mat = Mat::zeros(Size(VIS_WIDTH, VIS_HEIGHT), CV_8UC3);
+
+		for (i=0; i<NUM_ENTRIES; i++) {
+			client = &client_info[i];
+
+			if (!client->valid) continue;
+
+
+			for (cam_id = 0; cam_id < NUM_CAMERAS_PER_HUB; cam_id++) {
+				int cell_id;
+				int cell_x;
+				int cell_y;
+				struct timeval tv_now;
+				camera_info_t *cam_info;
+
+				cam_info = &client->camera_info[cam_id];
+
+				__get_visual_offset(i, cam_id, &x_offset, &y_offset);
+
+				if (cam_info->frame_id == 1) {
+					gettimeofday(&cam_info->tv_start, 0);
+				}
+
+
+				rectangle(vis_mat,
+							Point(x_offset-1, y_offset-1),
+							Point(x_offset + PER_CLIENT_W +1, y_offset + PER_CLIENT_H+1),
+							cam_id == 0 ? Scalar(255,0,0) : Scalar(0,0,255), 1, 8);
+				
+
+				gettimeofday(&tv_now, 0);
+
+				long delta = (tv_now.tv_sec - cam_info->tv_start.tv_sec) * 1000000 +
+							(tv_now.tv_usec - cam_info->tv_start.tv_usec);
+
+				
+				float fps = (cam_info->frame_id * 1000000.0) / delta;
+			
+				sprintf(cl_msg, "Client = %d:%d  fps = %.2f (%d)", i, cam_id, fps, cam_info->frame_id);
+
+				putText(vis_mat, cl_msg, Point(x_offset+5, y_offset-5), FONT_HERSHEY_SIMPLEX, 0.3, 
+						Scalar(0,255,0), 1, 8);
+
+				char *map;
+
+				map = cam_info->map;
+		
+				for (cell_id = 0; cell_id < NUM_HORIZ_CELLS * NUM_VERT_CELLS; cell_id++) {
+					
+					cell_x = x_offset + (cell_id % NUM_HORIZ_CELLS) * cell_w;
+					cell_y = y_offset + (cell_id / NUM_HORIZ_CELLS) * cell_h;
+
+					rectangle(vis_mat,
+							Point(cell_x, cell_y),
+							Point(cell_x + cell_w, cell_y + cell_h),
+							Scalar(128,128,128), 1, 8);
+
+					if (map[cell_id] & COLOR0_PRESENT) {
+						rectangle(vis_mat,
+							Point(cell_x + 1, cell_y + 1),
+							Point(cell_x + cell_w/3 - 1, cell_y+cell_h-1),
+							Scalar(0,0,255), -1, 8);
+					} 
+					
+					if (map[cell_id] & COLOR1_PRESENT) {
+						rectangle(vis_mat,
+							Point(cell_x + 1 + cell_w/3, cell_y + 1),
+							Point(cell_x + cell_w*2/3 - 1, cell_y+cell_h-1),
+							Scalar(0,255,0), -1, 8);
+					}
+
+					if (map[cell_id] & COLOR2_PRESENT) {
+						rectangle(vis_mat,
+							Point(cell_x + 1 + cell_w*2/3, cell_y + 1),
+							Point(cell_x + cell_w - 1, cell_y+cell_h-1),
+							Scalar(255,0,0), -1, 8);
+					}
+
+				}
+			}
+			
+		}	
+
+		UNLOCK_CL_INFO();
+
+		imshow(VIS_WINDOW, vis_mat);
+		waitKey(1);
+
+		//usleep(30000);
+	}
+}
+
+int main(int argc, char **argv) 
+{
+	pthread_t vis_thread0;
+
+
+	int listenfd,connfd;
+	struct sockaddr_in servaddr,cliaddr;
+	socklen_t clilen;
+	char client_name[INET6_ADDRSTRLEN];
+	int rc;
+	int port;
+	int cam_id;
+	int client_id;
+	camera_info_t *cam_info;
+	
+	if (argc != 2) {
+		printf("Error... usage: ./vis_server <port>\n");
+		return -1;
+	}
+
+	port = atoi(argv[1]);
+	printf("Initializing visual server... on port %d\n",port);
+	listenfd = socket(AF_INET,SOCK_STREAM,0);
+
+	bzero(&servaddr,sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servaddr.sin_port = htons(port);
+	rc = bind(listenfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
+
+	if (rc == -1) {
+		perror("bind error: ");
+		return -1;
+	}
+
+	rc = listen(listenfd,1024);
+	if (rc == -1) { 
+		perror("Listen error: ");
+		return -1;
+	}
+
+	
+	pthread_create(&vis_thread0, 0, vis_function, 0);
+	printf("Accepting connections on visualization...\n");
+
+	visual_packet_t vis_packet;
+
+
+	while (1) {
+		clilen = sizeof(cliaddr);
+		connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen);
+
+		if (connfd == -1) {
+			perror("ACCEPT ERROR\n");
+			continue;
+		}
+
+		printf("Connection accepted\n");
+
+		memset(client_info, 0x0, sizeof(client_info));
+
+		while (1) {
+
+
+
+			rc = __recvfrom(connfd, &vis_packet, sizeof(visual_packet_t));
+
+			if (rc != 0) {
+				printf("client disconnectd...\n");
+				break;
+			}
+
+			client_id = vis_packet.client_id;		
+			cam_id = vis_packet.data.camera_id;
+
+			cam_info = &client_info[client_id].camera_info[cam_id];
+
+			LOCK_CL_INFO();
+		
+			client_info[client_id].valid = 1;
+
+			memcpy(cam_info->color_info,
+					vis_packet.data.color_info,
+					sizeof(analyzed_color_t)*7);
+
+			memcpy(cam_info->map, vis_packet.data.map, sizeof(char) * NUM_HORIZ_CELLS * NUM_VERT_CELLS);
+			cam_info->frame_id = vis_packet.data.frame_id;
+			client_info_updated = 1;
+			UNLOCK_CL_INFO();
+		}
+		
+	}
+
+	return 0;
+}

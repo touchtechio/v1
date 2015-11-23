@@ -1,0 +1,684 @@
+[hub] 
+	client_id = 5
+
+	default_exposure_auto = 1
+	default_exposure_absolute = 20
+	default_zoom_absolute = 100
+	default_focus_auto = 0
+	default_focus_absolute = 20
+	default_white_balance_temperature_auto = 0
+	default_white_balance_temperature = 4000
+
+	default_brightness = 128
+	default_contrast = 128
+	default_saturation = 128
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 20
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 20
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 6
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 7
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 8
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 9
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 10
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 11
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 12
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 13
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 14
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 15
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 16
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 17
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 18
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 19
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 20
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 21
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 22
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 23
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 24
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
+[hub] 
+	client_id = 25
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+
+		spotlight = 0,0,1279,719
+
+	[camera]
+		exposure_auto = 1
+		exposure_absolute = 20
+		zoom_absolute = 100
+		focus_auto = 0
+		focus_absolute = 100
+		white_balance_temperature_auto = 0
+		white_balance_temperature = 4000
+
+		brightness = 128
+		contrast = 128
+		saturation = 128
+		spotlight = 0,0,1279,719
+
