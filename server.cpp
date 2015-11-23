@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include <sys/syscall.h>
 
 
 struct timeval tv_start;
@@ -59,7 +58,7 @@ static void __show_timeval(void) {
 
 	usec = delta % 1000000;
 
-	printf("[%d:%d][tid:%lu] ", sec, (int)((usec)/10000.0), syscall(SYS_gettid));
+	printf("[%d:%d][tid:]", sec, (int)((usec)/10000.0));
 }
 
 #define PR_LOG(x...) __show_timeval(); printf(x);
