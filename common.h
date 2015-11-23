@@ -1,4 +1,6 @@
 
+//#define VIS_SERVER_TCP_CONNECTION
+
 #define SERVER_PORT 12000
 
 #define CAMERA_WIDTH 1280
@@ -7,7 +9,7 @@
 #define NUM_HORIZ_CELLS 20
 #define NUM_VERT_CELLS 20
 
-#define MIN_AREA_TO_DETECT_PIXELS 1000
+#define MIN_AREA_TO_DETECT_PIXELS 100
 
 
 
@@ -70,6 +72,7 @@ typedef struct client_packet_t {
 typedef struct visual_packet_t {
 	int 				client_id;
 	analyzed_info_t 	data;
+	int					zone_id;
 } __attribute__((packed)) visual_packet_t;
 
 
@@ -125,6 +128,11 @@ inline void __dbg_print_vis_data(visual_packet_t *vpacket) {
 		line(img, Point(x, y-3), Point(x, y+3), color, width); \
 	} while(0)
 
+#define DRAW_X_EXT(img, x, y, color, sz, width) \
+	do {\
+		line(img, Point(x-sz, y), Point(x+sz, y), color, width);\
+		line(img, Point(x, y-sz), Point(x, y+sz), color, width); \
+	} while(0)
 
 
 int __recvfrom(int sockfd, void *data, int size) {
@@ -153,5 +161,88 @@ int __recvfrom(int sockfd, void *data, int size) {
 }
 
 
+typedef struct send_udp_sock_t {
+	struct sockaddr_in addr;
+	int sock_fd;
+} send_udp_sock_t;
+
+int __create_udp_send_socket(char *ip, int port, send_udp_sock_t *__sock) 
+{
+	int rc;
+
+	__sock->sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	memset(&__sock->addr, 0x0, sizeof(struct sockaddr_in));
+
+	
+	__sock->addr.sin_family = AF_INET;
+	__sock->addr.sin_port = htons(port);
+	__sock->addr.sin_addr.s_addr = inet_addr(ip);
 
 
+	return 0;
+}
+
+
+int __send_udp_packet(send_udp_sock_t *__sock, void *data, int size) {
+	return sendto(__sock->sock_fd,
+					data,
+					size,
+					MSG_DONTWAIT,
+					(struct sockaddr*)&__sock->addr,
+					sizeof(__sock->addr));
+}
+
+
+int __create_udp_listen_socket(int port) {
+	int sockfd;
+	struct sockaddr_in addr;
+	socklen_t sock_len;
+	int rc;
+	int option = 1;
+
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (void*)&option, sizeof(int));
+
+	bzero(&addr,sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(port);
+	rc = bind(sockfd,(struct sockaddr *)&addr,sizeof(addr));
+
+	if (rc == -1) {
+		perror("bind error: ");
+		return -1;
+	}
+
+	return sockfd;
+}
+
+typedef enum map_serv_cmd {
+	MAP_SERV_START_CAPTURE = 0x100,
+	MAP_SERV_STOP_CAPTURE,
+	MAP_GET_RESP,
+	MAP_SET_RESP,
+} map_serv_cmd;
+
+typedef struct map_serv_packet_t {
+	map_serv_cmd cmd_id;
+	char ip[200];
+	int port;
+	int val;
+} map_serv_packet_t;
+
+typedef enum option_id_t {
+	OPTION_DUMP_STATS = 0x200,
+} option_id_t;
+
+typedef struct option_packet_t {
+	option_id_t id;
+} option_packet_t;
+
+
+#define OPTION_PORT_CLIENT 1500
+#define OPTION_PORT_MAIN_SERV 1501
+#define OPTION_PORT_MAP_SERV 1502
+#define OPTION_PORT_VIS_SERV 1503

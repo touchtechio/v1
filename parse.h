@@ -7,7 +7,7 @@
 #define NUM_HUBS 40
 #define NUM_CAMERAS_PER_HUB 2
 //#define NUM_SPOTLIGHTS_PER_CAMERA 1
-#define NUM_COLORS_PER_CAMERA 3
+#define NUM_COLORS_PER_CAMERA 5
 
 typedef struct spotlight_t {
 	int x0;

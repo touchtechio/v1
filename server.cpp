@@ -23,10 +23,6 @@
 
 #include "common.h"
 #include <iostream>
-//#include "opencv2/highgui/highgui.hpp"
-//#include "opencv2/imgproc/imgproc.hpp"
-//#include "opencv2/calib3d/calib3d.hpp"
-//#include "opencv2/stitching/stitcher.hpp"
 
 #include <sys/time.h>
 #include <stdlib.h>
@@ -81,7 +77,6 @@ static int do_exit = 0;
 
 static int no_vis_server = 1;
 
-//using namespace cv;
 using namespace std;
 
 typedef struct connect_info_t {
@@ -92,8 +87,6 @@ typedef struct connect_info_t {
 	hub_settings_t *hub_settings;
 
 	pthread_mutex_t update_ready_mutex;
-	//Mat *mat[NUM_CAMERAS_PER_HUB];
-	char win_name[NUM_CAMERAS_PER_HUB][200];
 } connect_info_t;
 
 
@@ -341,12 +334,6 @@ void *client_read_function(void *data) {
 
 		memcpy(&vis_packet.data, p_data, sizeof(analyzed_info_t));
 
-/*
-		if (vis_packet.client_id < 5) {
-			PR_LOG("Unexpected client id %d\n", vis_packet.client_id);
-			__dump_log_and_exit();
-		}
-*/
 
 		if (vis_packet.data.frame_id == 0) {
 			PR_LOG("FRAME ID was 0 for client %d packet was %lu\n", vis_packet.client_id, sizeof(analyzed_info_t));
@@ -516,7 +503,7 @@ void *start_server(void* arg)
 		// Add client to list of clients
 		__client_list_add(p_connect_info);
 
-	//	__dbg_init_analyzed_data(p_connect_info);
+		//	__dbg_init_analyzed_data(p_connect_info);
 
 		// Spawn a thread for reading/writing to socket for the given client
 		pthread_create(client_thread, NULL, client_function, p_connect_info);

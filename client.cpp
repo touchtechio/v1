@@ -40,6 +40,8 @@ int do_debug = 0;
 int do_show_fps = 0;
 int do_show_markers = 0;
 int do_show_thresh = 0;
+int do_show_spot_selector = 0;
+
 
 //#define PRX printf
 #define PRX(x...) 
@@ -48,6 +50,8 @@ int do_show_thresh = 0;
 #define VISUAL_WIDTH 1280
 #define VISUAL_HEIGHT 720
 
+int arg_vis_scale = 2;
+int client_id = -1;
 char server_ip[100];
 int server_port;
 
@@ -129,7 +133,7 @@ volatile int do_exit = 0;
 static void sig_handler(int val) {
 	if (val == SIGTERM || val == SIGINT) {
 		do_exit = 1;
-		printf("---Client exit signal received---\n");
+		printf("---Client [id=%d] exit signal received---\n", client_id);
 	}
 }
 
@@ -167,16 +171,30 @@ void __setup_cap(VideoCapture *p_cap) {
 
 
 int sockfd;
-int client_id = -1;
 
 pthread_mutex_t send_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+int dbg_spot_x0[2] = {0,0};
+int dbg_spot_y0[2] = {0,0};
+int dbg_spot_x1[2] = { CAMERA_WIDTH-1, CAMERA_WIDTH-1 };
+int dbg_spot_y1[2] = { CAMERA_HEIGHT-1, CAMERA_HEIGHT-1 };
+
+#define DBG_SPOT_WIN0 "spotlight selection camera 0"
+#define DBG_SPOT_WIN1 "spotlight selection camera 1"
+
+void __create_debug_spotlight_win(const char *winname, int id) {
+	namedWindow(winname, CV_WINDOW_AUTOSIZE);
+	cvCreateTrackbar("X0", winname, &dbg_spot_x0[id], CAMERA_WIDTH-1);
+	cvCreateTrackbar("Y0", winname, &dbg_spot_y0[id], CAMERA_HEIGHT-1);
+	cvCreateTrackbar("X1", winname, &dbg_spot_x1[id], CAMERA_WIDTH-1);
+	cvCreateTrackbar("Y1", winname, &dbg_spot_y1[id], CAMERA_HEIGHT-1);
+}
 
 void __create_debug_color_win(const char *win_name, color_range_t *range)
 {
 	namedWindow(win_name, CV_WINDOW_AUTOSIZE);
-	cvCreateTrackbar("h high", win_name, &range->h_high, 255);
-	cvCreateTrackbar("h low", win_name, &range->h_low, 255);
+	cvCreateTrackbar("h high", win_name, &range->h_high, 179);
+	cvCreateTrackbar("h low", win_name, &range->h_low, 179);
 	cvCreateTrackbar("s high", win_name, &range->s_high, 255);
 	cvCreateTrackbar("s low", win_name, &range->s_low, 255);
 	cvCreateTrackbar("v high", win_name, &range->v_high, 255);
@@ -184,7 +202,7 @@ void __create_debug_color_win(const char *win_name, color_range_t *range)
 }
 
 
-static color_range_t red_color = {0,0,0,0,0,0};
+static color_range_t red_color = {0,179,150,255,90,255};
 static color_range_t green_color = {0,0,0,0,0,0};
 static color_range_t blue_color = {0,0,0,0,0,0};
 
@@ -297,6 +315,7 @@ void *client_read_function(void *data)
 				} else {
 					PRX("Skipping spot[%d]: %d,%d,%d,%d\n",i, spot->x0, spot->y0, spot->x1, spot->y1);
 				}
+
 
 			}
 
@@ -413,6 +432,16 @@ void *camera_main(void *data)
 			continue;
 		}
 
+		if (do_show_spot_selector) {
+			spot->x0 = dbg_spot_x0[camera_id];
+			spot->y0 = dbg_spot_y0[camera_id];
+			spot->x1 = dbg_spot_x1[camera_id];
+			spot->y1 = dbg_spot_y1[camera_id];
+
+	//		if (spot->x1 <= spot->x0) spot->x1 = spot->x0 + 1;
+	//		if (spot->y1 <= spot->y0) spot->y1 = spot->y0 + 1;
+		}
+
 		spot_x0 = spot->x0;
 		spot_x1 = spot->x1;
 		spot_y0 = spot->y0;
@@ -437,7 +466,7 @@ void *camera_main(void *data)
 		cvtColor(frame, *hsv_portion, COLOR_BGR2HSV);
 		putText(*rgb_portion, camera_label, Point(50, 50), FONT_HERSHEY_PLAIN, 2, Scalar(0,255,0), 3, 8);
 		
-		if (do_visual && do_show_markers)
+		if (do_visual && (do_show_markers || do_show_spot_selector) )
 		{
 			rectangle(*rgb_portion, 
 						Point(spot_x0, spot_y0),
@@ -532,7 +561,7 @@ void *camera_main(void *data)
 							if (pixel_area >= required_area) {
 
 								if (cell_id >= NUM_HORIZ_CELLS * NUM_VERT_CELLS) {
-									printf("CELL_ID exceeded limit %d\n", cell_id);
+	//								printf("CELL_ID exceeded limit %d\n", cell_id);
 								} else {
 									analyzed_info.map[cell_id] |= (1<<i); // SET BIT-field specifying color was present
 								}
@@ -644,13 +673,15 @@ int main(int argc, char **argv) {
 
 	if (argc >= 3) {
 	} else {
-		printf("Usage: ./client <server_ip> <server_port> [-v|-d|-f|-m|-t|--dev=start]\n");
+		printf("Usage: ./client <server_ip> <server_port> [-v|-d|-f|-m|-t|-s|--dev=start|--vsize=WxH]\n");
 		printf("\t-v : display visuals\n");
 		printf("\t-f : print fps\n");
 		printf("\t-d : debug info; setting -d sets -v as well\n");
 		printf("\t-m : show markers\n");
 		printf("\t-t : show threshold images\n");
+		printf("\t-s : show spotlight selector\n");
 		printf("\t--dev=<number> : first v4l2 device starts at index <number>\n");
+		printf("\t--vsize=WxH : specify width/height of the visual output\n");
 		
 		return -1;
 	}
@@ -667,12 +698,18 @@ int main(int argc, char **argv) {
 				do_show_markers = 1;
 			} else if (strcmp(argv[i], "-t") == 0) {
 				do_show_thresh = 1;
+			} else if (strcmp(argv[i], "-s") == 0) {
+				do_show_spot_selector = 1;
 			} else if (strncmp(argv[i], "--dev=", 6) == 0) {
 				char *p = argv[i];
 				p += 6;
 				start_dev = atoi(p);
+			} else if (strncmp(argv[i], "--vscale=",9) == 0) {
+				sscanf(argv[i], "--vscale=%d", &arg_vis_scale);
+				printf("Scale = %d\n", arg_vis_scale);
 			} else {
 				printf("Unknown option %s\n", argv[i]);
+				return -1;
 			}
 		}
 	}
@@ -710,6 +747,11 @@ int main(int argc, char **argv) {
 	PRX("Initializing client with id = %d\n", client_id);
 	
 	__create_debug_windows();
+
+	if (do_show_spot_selector) {
+		__create_debug_spotlight_win(DBG_SPOT_WIN0,0);
+		__create_debug_spotlight_win(DBG_SPOT_WIN1,1);
+	}
 
 	strcpy(server_ip, argv[1]);
 	server_port = atoi(argv[2]);
@@ -771,11 +813,12 @@ int main(int argc, char **argv) {
 		if (do_visual && do_show_thresh) {
 			for (i = 0; i< NUM_COLORS_PER_CAMERA; i++) {
 				Mat down_thresh;
-
+				Mat thresh_submat;
 				char winn[100];
 
-				down_thresh = Mat::zeros(Size(VISUAL_WIDTH, VISUAL_HEIGHT), CV_8UC1);
-				resize(*full_thresh[i],  down_thresh, Size(VISUAL_WIDTH, VISUAL_HEIGHT), 0, 0, INTER_LINEAR);
+				down_thresh = Mat::zeros(Size(VISUAL_WIDTH/arg_vis_scale, VISUAL_HEIGHT/arg_vis_scale), CV_8UC1);
+				thresh_submat = Mat(*full_thresh[i], Rect(0,0, VISUAL_WIDTH*2, VISUAL_HEIGHT));
+				resize(thresh_submat,  down_thresh, Size(VISUAL_WIDTH*2/arg_vis_scale, VISUAL_HEIGHT/arg_vis_scale), 0, 0, INTER_LINEAR);
 
 				sprintf(winn, "thresh%d win (%s)", i, names[i % 3]);
 				imshow(winn, down_thresh);
@@ -787,12 +830,15 @@ int main(int argc, char **argv) {
 
 		if (do_visual) {
 			Mat downscaled;
+			Mat __2cam_submat;
 
-//			downscaled = Mat::zeros(Size(VISUAL_WIDTH, VISUAL_HEIGHT), CV_8UC3);
-	//		resize(full_image_copy, downscaled, Size(VISUAL_WIDTH, VISUAL_HEIGHT), 0,0, INTER_LINEAR);
-		//	imshow("Donwcaled", downscaled);
+			__2cam_submat = Mat(full_image_copy, Rect(0,0,VISUAL_WIDTH*2, VISUAL_HEIGHT));
 
-			imshow("Full", full_image_copy);
+			downscaled = Mat::zeros(Size(VISUAL_WIDTH*2/arg_vis_scale, VISUAL_HEIGHT/arg_vis_scale), CV_8UC3);
+			resize(__2cam_submat, downscaled, Size(VISUAL_WIDTH*2/arg_vis_scale, VISUAL_HEIGHT/arg_vis_scale), 0,0, INTER_LINEAR);
+			imshow("Donwscaled", downscaled);
+			//imshow("__2cam", __2cam_submat);
+		//	imshow("Full", full_image_copy);
 		}
 
 		num_frames++;

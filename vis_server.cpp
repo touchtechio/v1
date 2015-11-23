@@ -54,6 +54,7 @@ typedef struct camera_info_t {
 	char map[NUM_HORIZ_CELLS * NUM_VERT_CELLS];	
 	int frame_id;
 	struct timeval tv_start;
+	int zone_id;
 } camera_info_t;
 
 typedef struct client_info_t {
@@ -66,17 +67,17 @@ volatile int client_info_updated = 0;
 client_info_t client_info[NUM_ENTRIES];
 
 
-#define VIS_WINDOW "Visualization"
 
+static char vis_window_name[100];
 
 #define VIS_WIDTH 1280
-#define VIS_HEIGHT 720
+#define VIS_HEIGHT 1000
 
-//#define PER_CLIENT_W 200
-//#define PER_CLIENT_H 120 
+#define PER_CLIENT_W 200
+#define PER_CLIENT_H 120 
 
-#define PER_CLIENT_W (200*2)
-#define PER_CLIENT_H (120*2)
+//#define PER_CLIENT_W (200*2)
+//#define PER_CLIENT_H (120*2)
 
 #define X_PADDING 10
 #define Y_PADDING 20
@@ -89,7 +90,7 @@ static void __get_visual_offset(int client_id, int camera_id, int *x_offset, int
 	int index;
 	int divider;
 
-	index = (client_id - 5) * NUM_CAMERAS_PER_HUB + camera_id;
+	index = (client_id - 1) * NUM_CAMERAS_PER_HUB + camera_id;
 
 	divider = VIS_WIDTH / ((PER_CLIENT_W + X_PADDING));
 
@@ -103,6 +104,29 @@ static void __get_visual_offset(int client_id, int camera_id, int *x_offset, int
 
 	return;
 	
+}
+
+static void __get_visual_offset_by_zone(int zone_id, int *x_offset, int *y_offset)
+{
+	int x;
+	int y;
+
+	int index;
+	int divider;
+
+	index = zone_id - 1;
+
+	//divider = VIS_WIDTH / ((PER_CLIENT_W + X_PADDING));
+
+	//divider &= 0xFFFFFFFE;
+	divider = 5;
+
+	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + X_PADDING;
+	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + Y_PADDING;
+
+	*x_offset = x;
+	*y_offset = y;
+
 }
 
 void* vis_function(void *data)
@@ -155,9 +179,9 @@ void* vis_function(void *data)
 
 				cam_info = &client->camera_info[cam_id];
 
-				__get_visual_offset(i, cam_id, &x_offset, &y_offset);
+				__get_visual_offset_by_zone(cam_info->zone_id, &x_offset, &y_offset);
 
-				if (cam_info->frame_id == 1) {
+				if (cam_info->tv_start.tv_sec == 0) {
 					gettimeofday(&cam_info->tv_start, 0);
 				}
 
@@ -175,8 +199,9 @@ void* vis_function(void *data)
 
 				
 				float fps = (cam_info->frame_id * 1000000.0) / delta;
-			
-				sprintf(cl_msg, "Client = %d:%d  fps = %.2f (%d)", i, cam_id, fps, cam_info->frame_id);
+				
+				//sprintf(cl_msg, "ID: %d:%d (zone: %d)  fps = %.2f (%d)", i, cam_id, cam_info->zone_id, fps, cam_info->frame_id);
+				sprintf(cl_msg, "ID: %d:%d (zone: %d)  (%d)", i, cam_id, cam_info->zone_id,  cam_info->frame_id);
 
 				putText(vis_mat, cl_msg, Point(x_offset+5, y_offset-5), FONT_HERSHEY_SIMPLEX, 0.3, 
 						Scalar(0,255,0), 1, 8);
@@ -185,6 +210,12 @@ void* vis_function(void *data)
 
 				map = cam_info->map;
 		
+				analyzed_color_t *c_info;
+
+				c_info = cam_info->color_info;
+				int color_id;
+
+
 				for (cell_id = 0; cell_id < NUM_HORIZ_CELLS * NUM_VERT_CELLS; cell_id++) {
 					
 					cell_x = x_offset + (cell_id % NUM_HORIZ_CELLS) * cell_w;
@@ -223,8 +254,8 @@ void* vis_function(void *data)
 
 		UNLOCK_CL_INFO();
 
-		imshow(VIS_WINDOW, vis_mat);
-		waitKey(1);
+		imshow(vis_window_name, vis_mat);
+		waitKey(30);
 
 		//usleep(30000);
 	}
@@ -234,7 +265,7 @@ int main(int argc, char **argv)
 {
 	pthread_t vis_thread0;
 
-
+	
 	int listenfd,connfd;
 	struct sockaddr_in servaddr,cliaddr;
 	socklen_t clilen;
@@ -244,7 +275,7 @@ int main(int argc, char **argv)
 	int cam_id;
 	int client_id;
 	camera_info_t *cam_info;
-	
+
 	if (argc != 2) {
 		printf("Error... usage: ./vis_server <port>\n");
 		return -1;
@@ -252,7 +283,20 @@ int main(int argc, char **argv)
 
 	port = atoi(argv[1]);
 	printf("Initializing visual server... on port %d\n",port);
-	listenfd = socket(AF_INET,SOCK_STREAM,0);
+
+	sprintf(vis_window_name, "Visualization:%d", port);
+
+	memset(client_info, 0x0, sizeof(client_info));
+
+#ifdef VIS_SERVER_TCP_CONNECTION
+	listenfd = socket(AF_INET, SOCK_STREAM, 0);
+#else
+	listenfd = socket(AF_INET, SOCK_DGRAM, 0);
+#endif
+
+	int option = 1;
+	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void*)&option, sizeof(int));
+
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -265,11 +309,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+#ifdef VIS_SERVER_TCP_CONNECTION
 	rc = listen(listenfd,1024);
 	if (rc == -1) { 
 		perror("Listen error: ");
 		return -1;
 	}
+#endif
 
 	
 	pthread_create(&vis_thread0, 0, vis_function, 0);
@@ -279,6 +325,8 @@ int main(int argc, char **argv)
 
 
 	while (1) {
+
+#if VIS_SERVER_TCP_CONNECTION 
 		clilen = sizeof(cliaddr);
 		connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen);
 
@@ -288,6 +336,9 @@ int main(int argc, char **argv)
 		}
 
 		printf("Connection accepted\n");
+#else 
+		connfd = listenfd;
+#endif
 
 		memset(client_info, 0x0, sizeof(client_info));
 
@@ -317,6 +368,12 @@ int main(int argc, char **argv)
 
 			memcpy(cam_info->map, vis_packet.data.map, sizeof(char) * NUM_HORIZ_CELLS * NUM_VERT_CELLS);
 			cam_info->frame_id = vis_packet.data.frame_id;
+			cam_info->zone_id = vis_packet.zone_id;
+
+			if (vis_packet.data.frame_id == 0 || vis_packet.data.frame_id == 1 || vis_packet.data.frame_id == -1) {
+				printf("WARN: frame_id came as %d\n", vis_packet.data.frame_id);
+			}
+
 			client_info_updated = 1;
 			UNLOCK_CL_INFO();
 		}
