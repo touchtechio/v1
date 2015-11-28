@@ -12,6 +12,7 @@ vis_server:
 fake:
 	g++ fake_client.cpp -o fake_client -O3 -lpthread -lm
 	g++ fake_visual_sender.cpp -o fake_visual_sender -O3 -lpthread 
+	g++ udp_logger.cpp -o udp_logger
 
 map:
 	g++ map_server.cpp -o map_server -O3 -I/usr/include/opencv -lopencv_calib3d -lopencv_contrib -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_highgui -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_stitching -lopencv_superres -lopencv_video -lopencv_videostab -lrt -lpthread -lm -ldl

@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
 			rc = __recvfrom(connfd, &vis_packet, sizeof(visual_packet_t));
             
-            printf("packet recieved of %lu \n", sizeof(visual_packet_t));
+			printf("packet recieved of %u \n", sizeof(visual_packet_t));
 
 
 			if (rc != 0) {
