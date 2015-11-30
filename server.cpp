@@ -30,7 +30,8 @@
 #include <stdio.h>
 #include <signal.h>
 
-
+#include <sys/syscall.h>
+#include <netinet/tcp.h>
 
 struct timeval tv_start;
 
@@ -58,10 +59,10 @@ static void __show_timeval(void) {
 
 	usec = delta % 1000000;
 
-	printf("[%d:%d][tid:]", sec, (int)((usec)/10000.0));
+	printf("[%d:%d][tid:%lu] ", sec, (int)((usec)/10000.0), syscall(SYS_gettid));
 }
 
-#define PR_LOG(x...) __show_timeval(); printf(x);
+#define PR_LOG(x...) __show_timeval(); printf("[line: %d] ", __LINE__); printf(x);
 
 static void __dump_log_and_exit(void) {
 
@@ -86,6 +87,7 @@ typedef struct connect_info_t {
 	hub_settings_t *hub_settings;
 
 	pthread_mutex_t update_ready_mutex;
+	int am_alive;
 } connect_info_t;
 
 
@@ -257,7 +259,9 @@ void *client_read_function(void *data) {
 		valid_packet = 1;
 		rc = __recvfrom(c_info->connfd, &client_packet, sizeof(client_packet_t));
 		if (rc != 0) {
-			PR_LOG("Failed in __recvfrom\n");
+			//PR_LOG("Failed in __recvfrom; exiting read\n");
+			c_info->am_alive = 0;
+			pthread_mutex_unlock(&c_info->update_ready_mutex);
 			return NULL;
 		}
 
@@ -330,7 +334,23 @@ void *client_read_function(void *data) {
 
 		pthread_mutex_lock(&vis_mutex);
 
+#ifdef ENABLE_TIMESTAMPS
+		struct timeval tv_recv;
+		GET_TIMESTAMP(&tv_recv);
 
+		#define DELTA(x,y) ((x.tv_sec - y.tv_sec) * 1000000 + (x.tv_usec - y.tv_usec))
+		{
+			unsigned long delta1, delta2, delta3;
+
+			delta1 = DELTA(tv_recv, p_data->timestamp_gotframe);
+			delta2 = DELTA(tv_recv, p_data->timestamp_sent);
+			delta3 = DELTA(p_data->timestamp_sent, p_data->timestamp_gotframe);
+
+			printf("Processing time: %lu  Send time: %lu total time : %lu\n", delta3, delta2, delta1);
+		}
+		#undef DELTA
+#endif
+		
 		memcpy(&vis_packet.data, p_data, sizeof(analyzed_info_t));
 
 
@@ -375,6 +395,12 @@ void *client_function(void *data) {
 		// We dont send anything until there is an update ready
 		pthread_mutex_lock(&c_info->update_ready_mutex);
 
+		if (c_info->am_alive == 0) {
+			//PR_LOG("Client %s not alive. exiting\n", c_info->hub_settings->ip_address);
+			pthread_mutex_unlock(&c_info->update_ready_mutex);
+			break;
+		}
+
 		pthread_mutex_lock(&options_mutex);
 		current_hub_settings = *(c_info->hub_settings);
 		pthread_mutex_unlock(&options_mutex);
@@ -396,7 +422,7 @@ void *client_function(void *data) {
 	shutdown(c_info->connfd, SHUT_RDWR);
 	close(c_info->connfd);
 
-	PR_LOG("Client %s exiting...\n", c_info->hub_settings->ip_address);
+	//PR_LOG("Client %s exiting...\n", c_info->hub_settings->ip_address);
 
 	__client_list_del(c_info);
 
@@ -455,12 +481,14 @@ void *start_server(void* arg)
 		clilen = sizeof(cliaddr);
 		connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen);
 
+		int one = 1;
 		if (connfd == -1) {
 			PR_LOG("ACCEPT ERROR\n");
 			continue;
 		}
 
 		
+		setsockopt(connfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
 		client_id = -1;
 		hub_settings = NULL;
 
@@ -504,6 +532,8 @@ void *start_server(void* arg)
 
 		//	__dbg_init_analyzed_data(p_connect_info);
 
+		p_connect_info->am_alive = 1;
+
 		// Spawn a thread for reading/writing to socket for the given client
 		pthread_create(client_thread, NULL, client_function, p_connect_info);
 
@@ -519,7 +549,9 @@ void *start_server(void* arg)
 static void sighandler(int val)
 {
 	if (val == SIGTERM || val == SIGINT) {
+		PR_LOG("EXITING SERVER due to signal %d\n", val);
 		do_exit = 1;
+		exit(0);
 	}
 }
 
@@ -575,7 +607,7 @@ void *handle_options(void *data) {
 		}
 
 		switch (option_packet.id) {
-			case OPTION_DUMP_STATS:
+			case OID_DUMP_STATS:
 				__opt_dump_stats();
 				break;
 			default:
@@ -617,7 +649,7 @@ int main(int argc, char **argv)
 
 	} else {
 
-		printf("usage: ./server [visual_server_ip] [visual_server_port] [v_ip2] [port2] [vip3] [port3] ...\n");
+		printf("usage: ./server [visual_server_ip] [visual_server_port] [v_ip2] [port2] [v_ip3] [port3] ...\n");
 		return -1;
 	}
 
@@ -646,7 +678,7 @@ int main(int argc, char **argv)
 		}
 
 
-		usleep(50000);
+		usleep(250000);
 	}
 
 	return 0;

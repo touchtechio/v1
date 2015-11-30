@@ -1,6 +1,7 @@
 /* (c) Intel Corporation 2015, All Rights Reserved */
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <netdb.h>
@@ -43,6 +44,8 @@ void __send_analyzed_info(int sockfd, analyzed_info_t *info) {
 
 	packet.header.signature = CLIENT_HEADER_SIGNATURE;
 
+	GET_TIMESTAMP(&info->timestamp_gotframe);
+	GET_TIMESTAMP(&info->timestamp_sent);
 	memcpy(&packet.data, info, sizeof(analyzed_info_t));
 
 	packet.checksum = __calc_checksum(info);
@@ -70,13 +73,15 @@ void *client_fn(void *thread_data) {
 	client_info_t *cl;
 	int sockfd;
 	analyzed_info_t data;
-	
+	int one = 1;
+
 	cl = (client_info_t*)thread_data;
 
 	printf("Starting thread for %d:%d\n", cl->client_id, cl->camera_id);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+	setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
 	memset(&server_addr, 0x0, sizeof(server_addr));
 
 	server_addr.sin_family = AF_INET;
@@ -135,7 +140,7 @@ void *client_fn(void *thread_data) {
 			data.map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR2_PRESENT;
 		}
 		__send_analyzed_info(sockfd, &data);
-		usleep(40000 + rand() % 10000);
+		usleep(30000 + rand() % 10000);
 
 	}
 }

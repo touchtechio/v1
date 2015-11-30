@@ -1,0 +1,38 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:		sshd
+# Required-Start:	$remote_fs $syslog
+# Required-Stop:	$remote_fs $syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		
+# Short-Description:	OpenBSD Secure Shell server
+### END INIT INFO
+
+set -e
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+case "$1" in
+  start)
+	~/VISION/server 10.10.10.70 10070 10.10.10.71 10.10.10.72 10070 10070 10.10.10.73 10070 10.10.10.74 10070 &
+	~/VISION/client 127.0.0.1 12000 &
+
+	;;
+  stop)
+	killall client
+	killall server
+	;;
+
+  restart)
+	killall client
+	killall server
+	~/VISION/server 10.10.10.70 10070 10.10.10.71 10.10.10.72 10070 10070 10.10.10.73 10070 10.10.10.74 10070 &
+	~/VISION/client 127.0.0.1 12000 &
+	;;
+
+  status)
+	exit 1
+esac
+
+exit 0

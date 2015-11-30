@@ -7,7 +7,7 @@
 #define NUM_HUBS 40
 #define NUM_CAMERAS_PER_HUB 2
 //#define NUM_SPOTLIGHTS_PER_CAMERA 1
-#define NUM_COLORS_PER_CAMERA 5
+#define NUM_COLORS_PER_CAMERA 3
 
 typedef struct spotlight_t {
 	int x0;
@@ -101,4 +101,5 @@ inline void __print_hub_settings(hub_settings_t *h)
 hub_settings_t *__get_client_settings(int client_id);
 
 
+settings_t *__get_global_settings(void);
 #endif /* __PARSE_H__ */

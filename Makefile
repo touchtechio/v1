@@ -1,6 +1,8 @@
-all: map fake server vis_server client api_app
+.PHONY: all client server vis_server fake map api_app options_server
 
-client:
+all: map fake server vis_server client api_app options_server
+
+client: 
 	g++ client.cpp -o client -O3 -I/usr/include/opencv -lopencv_calib3d -lopencv_contrib -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_highgui -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_stitching -lopencv_superres -lopencv_video -lopencv_videostab -lrt -lpthread -lm -ldl
 
 server:
@@ -12,7 +14,6 @@ vis_server:
 fake:
 	g++ fake_client.cpp -o fake_client -O3 -lpthread -lm
 	g++ fake_visual_sender.cpp -o fake_visual_sender -O3 -lpthread 
-	g++ udp_logger.cpp -o udp_logger
 
 map:
 	g++ map_server.cpp -o map_server -O3 -I/usr/include/opencv -lopencv_calib3d -lopencv_contrib -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_highgui -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_stitching -lopencv_superres -lopencv_video -lopencv_videostab -lrt -lpthread -lm -ldl
@@ -20,5 +21,8 @@ map:
 api_app:
 	g++ api_app.cpp -o api_app -O3 -lrt -lpthread -lm -ldl
 
+options_server:
+	g++ options_server.cpp parse.cpp -o options_server -O3 -lpthread
+
 clean:
-	rm -f client server vis_server fake_client api_app map_server fake_visual_sender
+	rm -f client server vis_server fake_client api_app fake_visual_sender map_server options_server
