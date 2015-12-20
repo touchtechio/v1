@@ -82,9 +82,18 @@ void *client_fn(void *thread_data) {
 		int i,x,y;
 		
 		for (i=0; i<7; i++) {
-			p_data->color_info[i].x = 100;
-			p_data->color_info[i].y = 100;
-			p_data->color_info[i].area = 300;
+			p_data->color_info[i].x = p_data->frame_id % 1280;
+			p_data->color_info[i].y = p_data->frame_id % 720;
+			p_data->color_info[i].area = 4000*(i+1);
+
+			p_data->color_info[i].h_low = 10*(i+1);
+			p_data->color_info[i].h_high = 11*(i+1)
+;
+			p_data->color_info[i].s_low = 30*(i+1);
+			p_data->color_info[i].s_high = 31*(i+1);
+
+			p_data->color_info[i].v_low = 20*(i+1);
+			p_data->color_info[i].v_high = 21*(i+1);
 		}
 
 		i=0;
@@ -97,11 +106,17 @@ void *client_fn(void *thread_data) {
 			}
 		}
 
+		for (i=0; i<400; i++) {
+			p_data->map[i] = i * fake_packet.zone_id;
+		}
+
+#if 0
 		for (i=0; i<intensity; i++) {
 			p_data->map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR0_PRESENT;
 			p_data->map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR1_PRESENT;
 			p_data->map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR2_PRESENT;
 		}
+#endif
 		
 		__send_udp_packet(&socket, &fake_packet, sizeof(fake_packet));
 		usleep(40000 + rand() % 10000);

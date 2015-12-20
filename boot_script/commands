@@ -1,0 +1,5 @@
+sudo cp camera_script /etc/init.d/
+sudo chmod 700 /etc/init.d/camera_script 
+sudo update-rc.d camera_script defaults
+sudo update-rc.d camera_script enable
+

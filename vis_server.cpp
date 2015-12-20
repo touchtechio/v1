@@ -210,11 +210,6 @@ void* vis_function(void *data)
 
 				map = cam_info->map;
 		
-				analyzed_color_t *c_info;
-
-				c_info = cam_info->color_info;
-				int color_id;
-
 
 				for (cell_id = 0; cell_id < NUM_HORIZ_CELLS * NUM_VERT_CELLS; cell_id++) {
 					

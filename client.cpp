@@ -1,6 +1,7 @@
 /* (c) Intel Corporation 2015, All Rights Reserved */
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <netdb.h>
@@ -217,14 +218,29 @@ void __create_debug_windows(void) {
 
 void __send_analyzed_info(analyzed_info_t *info) {
 	int rc;
+	int i;
+	int cam_id;
+
 	client_packet_t packet;
 
 	pthread_mutex_lock(&send_mutex);
 
+	cam_id = info->camera_id;
 	packet.header.signature = CLIENT_HEADER_SIGNATURE;
 
-	memcpy(&packet.data, info, sizeof(analyzed_info_t));
+	GET_TIMESTAMP(&info->timestamp_sent);
 
+	for (i=0; i<7; i++) {
+		info->color_info[i].h_low = capture_info[cam_id].track_color[i].h_low;
+		info->color_info[i].s_low = capture_info[cam_id].track_color[i].s_low;
+		info->color_info[i].v_low = capture_info[cam_id].track_color[i].v_low;
+
+		info->color_info[i].h_high = capture_info[cam_id].track_color[i].h_high;
+		info->color_info[i].s_high = capture_info[cam_id].track_color[i].s_high;
+		info->color_info[i].v_high = capture_info[cam_id].track_color[i].v_high;
+	}
+
+	memcpy(&packet.data, info, sizeof(analyzed_info_t));
 	packet.checksum = __calc_checksum(info);
 
 	rc = send(sockfd, &packet, sizeof(client_packet_t), MSG_DONTWAIT);
@@ -252,7 +268,9 @@ void *client_read_function(void *data)
 	pthread_t  write_thread;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
+	
+	int one = 1;
+	setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
 	memset(&server_addr, 0x0, sizeof(server_addr));
 
 	server_addr.sin_family = AF_INET;
@@ -345,7 +363,7 @@ typedef struct draw_colors_t {
 } draw_colors_t;
 
 
-draw_colors_t colors_for_x[NUM_COLORS_PER_CAMERA] = {
+draw_colors_t colors_for_x[] = {
 	{255,0,0},
 	{0,255,0},
 	{0,0,255},
@@ -364,6 +382,7 @@ void *camera_main(void *data)
 	int i;
 	int counter = 0;
 	spotlight_t *spot = 0;
+	int required_area;
 
 	Moments motion_moments;
 	capture_info_t *cap_info;
@@ -397,7 +416,10 @@ void *camera_main(void *data)
 	}
 
 
-	rgb_portion = new Mat(full_image, Rect(x,y,w,h));
+	if (do_visual) {
+		rgb_portion = new Mat(full_image, Rect(x,y,w,h));
+	}
+
 	hsv_portion = new Mat(full_hsv, Rect(x,y,w,h));
 
 	spot = &spotlight[camera_id];
@@ -425,6 +447,8 @@ void *camera_main(void *data)
 		PRX("[%d] >>> before capture\n", camera_id);
 		(*(p_cap)) >> frame;
 
+
+		GET_TIMESTAMP(&analyzed_info.timestamp_gotframe);
 		PRX("[%d] <<< after capture\n", camera_id);
 
 		if (frame.empty()) {
@@ -437,9 +461,6 @@ void *camera_main(void *data)
 			spot->y0 = dbg_spot_y0[camera_id];
 			spot->x1 = dbg_spot_x1[camera_id];
 			spot->y1 = dbg_spot_y1[camera_id];
-
-	//		if (spot->x1 <= spot->x0) spot->x1 = spot->x0 + 1;
-	//		if (spot->y1 <= spot->y0) spot->y1 = spot->y0 + 1;
 		}
 
 		spot_x0 = spot->x0;
@@ -447,12 +468,11 @@ void *camera_main(void *data)
 		spot_y0 = spot->y0;
 		spot_y1 = spot->y1;
 
-
 		real_cam_width = (spot_x1 - spot_x0 + 1);
 		real_cam_height = (spot_y1 - spot_y0 + 1);
 
 		analyzed_info.camera_id = -1;
-		for (i=0; i<7; i++) {
+		for (i = 0; i < 7; i++) {
 			analyzed_info.color_info[i].x = -1;
 			analyzed_info.color_info[i].y = -1;
 			analyzed_info.color_info[i].area = -1;
@@ -461,10 +481,16 @@ void *camera_main(void *data)
 		analyzed_info.frame_id++;
 
 		pthread_mutex_lock(&mutex);
-		
-		frame.copyTo(*rgb_portion);
+	
+		if (do_visual) {	
+			frame.copyTo(*rgb_portion);
+		}
+
 		cvtColor(frame, *hsv_portion, COLOR_BGR2HSV);
-		putText(*rgb_portion, camera_label, Point(50, 50), FONT_HERSHEY_PLAIN, 2, Scalar(0,255,0), 3, 8);
+
+		if (do_visual) {
+			putText(*rgb_portion, camera_label, Point(50, 50), FONT_HERSHEY_PLAIN, 2, Scalar(0,255,0), 3, 8);
+		}
 		
 		if (do_visual && (do_show_markers || do_show_spot_selector) )
 		{
@@ -509,84 +535,78 @@ void *camera_main(void *data)
 			thresh_spot = new Mat(*thresh_portion[i], Rect(spot_x0, spot_y0, real_cam_width, real_cam_height));
 			motion_moments = moments(*thresh_spot, false);
 	
+		//	memset(&motion_moments, 0x0, sizeof(motion_moments));
 			area = motion_moments.m00 / 255.0;
 			
 			pos_x = 0; pos_y = 0;
 	
 
-				{
-					int x,y;
-					
-					int step_x = (real_cam_width)  / NUM_HORIZ_CELLS;
-					int step_y = (real_cam_height) / NUM_VERT_CELLS;
-					Mat *cell_mat;
-
-					Moments cell_moments;
-					int cell_area;
-					int pixel_area;
-					int required_area;
-
-					int rounded_width;
-					int rounded_height;
-					int cell_id = 0;
-
-					//if (camera_id == 0) printf("STEPX: %d STEPY: %d, REAL_W: %d REAL_H: %d\n", step_x, step_y, real_cam_width, real_cam_height);
-	
-					if (REQUIRED_AREA == 0) {				
-						required_area = ((float)step_x * (float)step_y * (CELL_THRESH_PERCENT)/100.0); // % of the area
-					} else {
-						required_area = REQUIRED_AREA;
-					}
-
-
-					rounded_width = ((real_cam_width) / step_x ) * step_x;
-					rounded_height = ((real_cam_height) / step_y) * step_y;
-
-					for (y = 0; y < rounded_height; y += step_y) {
-					for (x = 0; x < rounded_width; x += step_x) {
-							Rect my_rect;
-
-							my_rect = Rect(x,y, step_x, step_y);
-
-							//if (camera_id == 0) printf("%d, %d, %d, %d\n", x,y, step_x, step_y);
-							cell_mat = new Mat(*thresh_spot, my_rect);
+		{
+			int x,y;
 			
-								
+			int step_x = (real_cam_width)  / NUM_HORIZ_CELLS;
+			int step_y = (real_cam_height) / NUM_VERT_CELLS;
+			Mat *cell_mat;
 
-							cell_moments = moments(*cell_mat, false);
-							cell_area = cell_moments.m00;
+			Moments cell_moments;
+			int cell_area;
+			int pixel_area;
 
-							pixel_area = cell_area / 255;
-						
-							if (pixel_area >= required_area) {
+			int rounded_width;
+			int rounded_height;
+			int cell_id = 0;
 
-								if (cell_id >= NUM_HORIZ_CELLS * NUM_VERT_CELLS) {
-	//								printf("CELL_ID exceeded limit %d\n", cell_id);
-								} else {
-									analyzed_info.map[cell_id] |= (1<<i); // SET BIT-field specifying color was present
-								}
+			//if (camera_id == 0) printf("STEPX: %d STEPY: %d, REAL_W: %d REAL_H: %d\n", step_x, step_y, real_cam_width, real_cam_height);
 
+			if (REQUIRED_AREA == 0) {				
+				required_area = ((float)step_x * (float)step_y * (CELL_THRESH_PERCENT)/100.0); // % of the area
+			} else {
+				required_area = REQUIRED_AREA;
+			}
 
+			rounded_width = ((real_cam_width) / step_x ) * step_x;
+			rounded_height = ((real_cam_height) / step_y) * step_y;
 
-								// Visual stuff
-								if (do_visual && do_show_markers) {
-									Point p0 = Point(my_rect.tl().x + spot_x0, my_rect.tl().y + spot_y0);
-									Point p1 = Point(my_rect.br().x + spot_x0, my_rect.br().y + spot_y0);
+			for (y = 0; y < rounded_height; y += step_y) {
+				for (x = 0; x < rounded_width; x += step_x) {
 
-									rectangle(*rgb_portion, p0, p1, Scalar(255,255,255),1,8,0);
+					if (cell_id < NUM_HORIZ_CELLS * NUM_VERT_CELLS) {
 
-								}
-								
+						Rect my_rect;
+
+						my_rect = Rect(x,y, step_x, step_y);
+
+						//if (camera_id == 0) printf("%d, %d, %d, %d\n", x,y, step_x, step_y);
+						cell_mat = new Mat(*thresh_spot, my_rect);
+	
+						cell_moments = moments(*cell_mat, false);
+						cell_area = cell_moments.m00;
+
+						pixel_area = cell_area / 255;
+				
+						if (pixel_area >= required_area) {
+
+							analyzed_info.map[cell_id] |= (1<<i); // SET BIT-field specifying color was present
+
+							// Visual stuff
+							if (do_visual && do_show_markers) {
+								Point p0 = Point(my_rect.tl().x + spot_x0, my_rect.tl().y + spot_y0);
+								Point p1 = Point(my_rect.br().x + spot_x0, my_rect.br().y + spot_y0);
+								rectangle(*rgb_portion, p0, p1, Scalar(255,255,255),1,8,0);
+
 							}
-							delete cell_mat;
-
-							cell_id++;
+						
 						}
+						delete cell_mat;
 					}
+
+					cell_id++;
 				}
+			}
+		}
 
 
-			if (area > MIN_AREA_TO_DETECT_PIXELS) {
+			if (area > required_area) {
 				Mat thresh_cpy;
 
 				pos_x = (int)  (motion_moments.m10 / motion_moments.m00) + spot_x0;
@@ -610,7 +630,7 @@ void *camera_main(void *data)
 			
 
 			// For Debug
-			if (do_show_markers && pos_x != -1) {
+			if (do_visual && do_show_markers && pos_x != -1) {
 				DRAW_X(*rgb_portion, pos_x, pos_y, Scalar(colors_for_x[i].b, colors_for_x[i].g, colors_for_x[i].r), 2);
 			}
 
@@ -641,7 +661,9 @@ void *camera_main(void *data)
 
 	PRX("--------------- EXIT %d ----------------- \n", camera_id);
 
-	delete rgb_portion;
+	if (do_visual) {
+		delete rgb_portion;
+	}
 	delete hsv_portion;
 
 	for (i = 0; i < NUM_COLORS_PER_CAMERA; i++) {

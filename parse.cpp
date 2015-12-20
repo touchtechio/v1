@@ -8,6 +8,9 @@ settings_t global_settings;
 
 #define	SHOW_ERROR_DBG_INFO() printf("line: %s value: %s\n", line_name, line_value);
 
+settings_t *__get_global_settings(void) {
+	return &global_settings;
+}
 
 int __lookup_hub_id(char *name)
 {

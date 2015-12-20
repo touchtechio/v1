@@ -54,7 +54,7 @@ coord_t last_coord[3] = {0,0,0};
 
 Mat mapping;
 
-int state = MAP_SERV_STOP_CAPTURE;
+int state = MAP_SERV_START_CAPTURE;
 
 void __add_color(int color_id, int x, int y) {
 	int cur_pix_id;

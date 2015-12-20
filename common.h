@@ -1,5 +1,17 @@
+// USE TCP connectiont o vis server instead of UDP
 
 //#define VIS_SERVER_TCP_CONNECTION
+
+
+// Add timestamps to packet info
+//#define ENABLE_TIMESTAMPS
+
+#ifdef ENABLE_TIMESTAMPS
+#define GET_TIMESTAMP(x) gettimeofday(x, 0);
+#else
+#define GET_TIMESTAMP(x)
+#endif
+
 
 #define SERVER_PORT 12000
 
@@ -44,6 +56,8 @@ typedef struct analyzed_color_t {
 	short x;
 	short y;
 	int area;
+	unsigned char h_low, s_low, v_low;
+	unsigned char h_high, s_high, v_high;
 } __attribute__((packed)) analyzed_color_t;
 
 
@@ -52,6 +66,12 @@ typedef struct analyzed_info_t {
 	analyzed_color_t color_info[7];
 	unsigned char map[NUM_HORIZ_CELLS * NUM_VERT_CELLS];
 	int frame_id;
+
+#ifdef ENABLE_TIMESTAMPS
+	struct timeval timestamp_gotframe;
+	struct timeval timestamp_sent;
+#endif
+
 } __attribute__((packed)) analyzed_info_t;
 
 typedef struct client_packet_header_t {
@@ -70,9 +90,9 @@ typedef struct client_packet_t {
 
 
 typedef struct visual_packet_t {
-	int 				client_id;
+	char 				zone_id;
+	char 				client_id;
 	analyzed_info_t 	data;
-	int					zone_id;
 } __attribute__((packed)) visual_packet_t;
 
 
@@ -234,15 +254,26 @@ typedef struct map_serv_packet_t {
 } map_serv_packet_t;
 
 typedef enum option_id_t {
-	OPTION_DUMP_STATS = 0x200,
+	OID_NONE = 0x0,
+	OID_DUMP_STATS = 0x200,
+	OID_SET_DFLT_BRIGHTNESS,
+	OID_SET_DFLT_CONTRAST,
+	OID_SET_DFLT_SATURATION,
+	OID_SET_DFLT_EXPOSURE_ABSOLUTE,
+	OID_SET_DFLT_FOCUS_ABSOLUTE,
+	OID_SET_DFLT_WHITE_BALANCE_TEMP,
+	OID_SET_DFLT_ZOOM_ABSOLUTE,
+	OID_GENERATE_CONFIG,
 } option_id_t;
 
+#define MAX_OPTION_ARGS 6
 typedef struct option_packet_t {
 	option_id_t id;
+	int arg[MAX_OPTION_ARGS];
 } option_packet_t;
-
 
 #define OPTION_PORT_CLIENT 1500
 #define OPTION_PORT_MAIN_SERV 1501
 #define OPTION_PORT_MAP_SERV 1502
 #define OPTION_PORT_VIS_SERV 1503
+#define OPTION_PORT_OPT_SERV 1504
