@@ -22,6 +22,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <mutex>
 
 #include "parse.h"
 #include "common.h"
@@ -53,12 +54,13 @@ void process_vision(int listenfd)
             printf("WARN: frame_id came as %d\n", vis_packet.data.frame_id);
         }
 
+	int zone = vis_packet.zone_id;
         char address[80] = "/camera/zone/";
         std::stringstream stream;
-        stream << vis_packet.zone_id;
+        stream << zone;
         strcat (address, stream.str().c_str());
         analyzed_color_t *color_info = vis_packet.data.color_info;
-
+	
         streamMutex.lock();
         (*p) << osc::BeginMessage( address );
         
