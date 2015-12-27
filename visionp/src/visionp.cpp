@@ -30,6 +30,8 @@
 #define OUTPUT_STREAM_SIZE 10000
 #define INBOUND_PACKET_SIZE 100
 #define FILLED_SIZE 1304
+#define MAX_ZONE_AREA 400
+
 
 const char* oscTarget;
 int oscPort;
@@ -64,9 +66,9 @@ void process_vision(int listenfd)
         streamMutex.lock();
         (*p) << osc::BeginMessage( address );
 
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 3; i++) {
         //  (*p) << color_info[i].x << color_info[i].y << color_info[i].area;
-          (*p) << color_info[i].area;
+          (*p) << ((float)color_info[i].area/(float)MAX_ZONE_AREA));
         }
 
         (*p) << osc::EndMessage;
