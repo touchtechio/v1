@@ -60,17 +60,18 @@ void process_vision(int listenfd)
         stream << zone;
         strcat (address, stream.str().c_str());
         analyzed_color_t *color_info = vis_packet.data.color_info;
-	
+
         streamMutex.lock();
         (*p) << osc::BeginMessage( address );
-        
+
         for (int i = 0; i < 7; i++) {
-            (*p) << color_info[i].x << color_info[i].y << color_info[i].area;
+        //  (*p) << color_info[i].x << color_info[i].y << color_info[i].area;
+          (*p) << color_info[i].area;
         }
 
         (*p) << osc::EndMessage;
         std::cout << p->Size() << std::endl;
-        
+
         if (p->Size() > FILLED_SIZE) {
             (*p) << osc::EndBundle;
             oscSocket.Send(p->Data(), p->Size());
@@ -82,7 +83,7 @@ void process_vision(int listenfd)
     }
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
     int listenfd, port, rc;
     struct sockaddr_in servaddr;
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
         perror("bind error: ");
         return -1;
     }
-    
+
     printf("Accepting connections on visualization...\n");
 
     char buffer[OUTPUT_STREAM_SIZE];
