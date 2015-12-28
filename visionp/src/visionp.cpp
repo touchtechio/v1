@@ -68,7 +68,7 @@ void process_vision(int listenfd)
 
         for (int i = 0; i < 3; i++) {
         //  (*p) << color_info[i].x << color_info[i].y << color_info[i].area;
-          (*p) << ((float)color_info[i].area/(float)MAX_ZONE_AREA));
+          (*p) << ((float)color_info[i].area/((float)MAX_ZONE_AREA));
         }
 
         (*p) << osc::EndMessage;
