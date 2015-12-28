@@ -6,9 +6,9 @@ only_if_running=0
 no_attach=0
 exists=0
 
-pane1="$d/fwd.sh"
+pane1="sleep 5 && $d/fake_client 127.0.0.1 12000 30 100"
 pane2="$d/osc.sh"
-pane3="$d/build/sernet dst"
+pane3="$d/server 127.0.0.1 12001 127.0.0.1 12002"
 
 for arg; do
     if [[ "$arg" == "-r" ]]; then
@@ -22,7 +22,7 @@ for arg; do
     fi
 done
 
-exists=$(tmux list-sessions 2>/dev/null | grep sernet)
+exists=$(tmux list-sessions 2>/dev/null | grep vision)
 
 if [ ! -z "$exists" ]; then
     exists=1
@@ -37,7 +37,7 @@ if (( $exists < $only_if_running )); then
 fi
 
 tmux start-server
-tmux new-session -d -s sernet 2>/dev/null
+tmux new-session -d -s vision 2>/dev/null
 sleep 0.010
 
 tmux selectp -t 1
@@ -97,5 +97,5 @@ fi
 
 if ! (( $no_attach )); then
     echo 1
-    tmux attach-session -t sernet
+    tmux attach-session -t vision
 fi
