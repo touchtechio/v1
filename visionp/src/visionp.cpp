@@ -30,7 +30,7 @@
 #define OUTPUT_STREAM_SIZE 10000
 #define INBOUND_PACKET_SIZE 100
 #define FILLED_SIZE 1304
-#define MAX_ZONE_AREA 400
+#define MAX_ZONE_AREA 100
 
 
 const char* oscTarget;
