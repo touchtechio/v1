@@ -70,8 +70,8 @@ client_info_t client_info[NUM_ENTRIES];
 
 static char vis_window_name[100];
 
-#define VIS_WIDTH 1280
-#define VIS_HEIGHT 1000
+#define VIS_WIDTH 1100
+#define VIS_HEIGHT 900
 
 #define PER_CLIENT_W 200
 #define PER_CLIENT_H 120 
@@ -81,6 +81,42 @@ static char vis_window_name[100];
 
 #define X_PADDING 10
 #define Y_PADDING 20
+
+#define START_PAD_X 30
+#define START_PAD_Y 30
+
+
+static void __get_approx_rgb(int h, int *r, int *g, int *b) {
+	if ((h>=0 && h<15) || h>=171) {
+		*r=255; *g=0; *b=0;
+		return;
+	}
+
+	if (h>=15 && h<33) {
+		*r=255; *g=255; *b=0;
+		return;
+	}
+
+	if (h>=33 && h<76) {
+		*r=0; *g=255; *b=0;
+		return;
+	}
+
+	if (h>=76 && h<96) {
+		*r=0; *g=255; *b=255;
+		return;
+	}
+
+	if (h>=96 && h<131) {
+		*r=0; *g=0; *b=255;
+		return;
+	}
+
+	if (h>=131 && h<171) {
+		*r=255; *g=0; *b=255;
+		return;
+	}
+}
 
 static void __get_visual_offset(int client_id, int camera_id, int *x_offset, int *y_offset)
 {
@@ -96,8 +132,8 @@ static void __get_visual_offset(int client_id, int camera_id, int *x_offset, int
 
 	divider &= 0xFFFFFFFE;
 
-	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + X_PADDING;
-	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + Y_PADDING;
+	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + START_PAD_X;
+	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + START_PAD_Y;
 
 	*x_offset = x;
 	*y_offset = y;
@@ -121,8 +157,8 @@ static void __get_visual_offset_by_zone(int zone_id, int *x_offset, int *y_offse
 	//divider &= 0xFFFFFFFE;
 	divider = 5;
 
-	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + X_PADDING;
-	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + Y_PADDING;
+	x = (index % divider)  * (PER_CLIENT_W + X_PADDING) + START_PAD_X;
+	y = (index / divider) * (PER_CLIENT_H + Y_PADDING) + START_PAD_Y;
 
 	*x_offset = x;
 	*y_offset = y;
@@ -200,16 +236,20 @@ void* vis_function(void *data)
 				
 				float fps = (cam_info->frame_id * 1000000.0) / delta;
 				
-				//sprintf(cl_msg, "ID: %d:%d (zone: %d)  fps = %.2f (%d)", i, cam_id, cam_info->zone_id, fps, cam_info->frame_id);
+//				sprintf(cl_msg, "ID: %d:%d (zone: %d)  fps = %.2f (%d)", i, cam_id, cam_info->zone_id, fps, cam_info->frame_id);
 				sprintf(cl_msg, "ID: %d:%d (zone: %d)  (%d)", i, cam_id, cam_info->zone_id,  cam_info->frame_id);
 
 				putText(vis_mat, cl_msg, Point(x_offset+5, y_offset-5), FONT_HERSHEY_SIMPLEX, 0.3, 
 						Scalar(0,255,0), 1, 8);
 
 				char *map;
+				analyzed_color_t *color_info;
+				int avg_h;
 
 				map = cam_info->map;
-		
+				color_info = cam_info->color_info;		
+				int r,g,b;
+				//color_info[0].h_low, s_low, v_low, h_high, s_high, v_high
 
 				for (cell_id = 0; cell_id < NUM_HORIZ_CELLS * NUM_VERT_CELLS; cell_id++) {
 					
@@ -222,24 +262,31 @@ void* vis_function(void *data)
 							Scalar(128,128,128), 1, 8);
 
 					if (map[cell_id] & COLOR0_PRESENT) {
+
+						__get_approx_rgb( (color_info[0].h_low+color_info[0].h_high)/2,
+											&r, &g, &b);
 						rectangle(vis_mat,
 							Point(cell_x + 1, cell_y + 1),
 							Point(cell_x + cell_w/3 - 1, cell_y+cell_h-1),
-							Scalar(0,0,255), -1, 8);
+							Scalar(b,g,r), -1, 8);
 					} 
 					
 					if (map[cell_id] & COLOR1_PRESENT) {
+						__get_approx_rgb( (color_info[1].h_low+color_info[1].h_high)/2,
+											&r, &g, &b);
 						rectangle(vis_mat,
 							Point(cell_x + 1 + cell_w/3, cell_y + 1),
 							Point(cell_x + cell_w*2/3 - 1, cell_y+cell_h-1),
-							Scalar(0,255,0), -1, 8);
+							Scalar(b,g,r), -1, 8);
 					}
 
 					if (map[cell_id] & COLOR2_PRESENT) {
+						__get_approx_rgb( (color_info[2].h_low+color_info[2].h_high)/2,
+											&r, &g, &b);
 						rectangle(vis_mat,
 							Point(cell_x + 1 + cell_w*2/3, cell_y + 1),
 							Point(cell_x + cell_w - 1, cell_y+cell_h-1),
-							Scalar(255,0,0), -1, 8);
+							Scalar(b,g,r), -1, 8);
 					}
 
 				}
@@ -291,7 +338,10 @@ int main(int argc, char **argv)
 
 	int option = 1;
 	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (void*)&option, sizeof(int));
-
+	
+	int udp_buff_size;
+	udp_buff_size = sizeof(visual_packet_t) * 5;
+	setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, &udp_buff_size, sizeof(udp_buff_size));
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -353,6 +403,7 @@ int main(int argc, char **argv)
 
 			cam_info = &client_info[client_id].camera_info[cam_id];
 
+			
 			LOCK_CL_INFO();
 		
 			client_info[client_id].valid = 1;

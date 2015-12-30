@@ -44,14 +44,6 @@ typedef struct client_info_t {
 	int client_id;
 } client_info_t;
 
-static int __lookup_zone_id(int client_id, int camera_id) {
-	int row;
-	int column;
-	row = ((client_id-1)/5) * 2 + camera_id;
-	column = 4 - (client_id - 1) % 5;
-	return row * 5 + (column + 1);
-}
-
 
 void *client_fn(void *thread_data) {
 	struct sockaddr_in server_addr;
@@ -98,7 +90,6 @@ void *client_fn(void *thread_data) {
 
 		i=0;
 		
-
 		for (y=0; y<NUM_VERT_CELLS; y++) {
 			for (x=0; x<NUM_HORIZ_CELLS; x++) {
 				p_data->map[i] = 0x0;
@@ -106,11 +97,12 @@ void *client_fn(void *thread_data) {
 			}
 		}
 
+#if 0
 		for (i=0; i<400; i++) {
 			p_data->map[i] = i * fake_packet.zone_id;
 		}
-
-#if 0
+#endif 
+#if 1
 		for (i=0; i<intensity; i++) {
 			p_data->map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR0_PRESENT;
 			p_data->map[rand() % (NUM_VERT_CELLS * NUM_HORIZ_CELLS)] |= COLOR1_PRESENT;
@@ -118,8 +110,9 @@ void *client_fn(void *thread_data) {
 		}
 #endif
 		
+		printf("Sending packet %d\n", p_data->frame_id);
 		__send_udp_packet(&socket, &fake_packet, sizeof(fake_packet));
-		usleep(40000 + rand() % 10000);
+		//usleep(40000 + rand() % 10000);
 
 	}
 }

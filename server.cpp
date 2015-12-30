@@ -37,13 +37,6 @@ struct timeval tv_start;
 
 static int options_socket_fd = -1;
 
-static int __lookup_zone_id(int client_id, int camera_id) {
-	int row;
-	int column;
-	row = ((client_id-1)/5) * 2 + camera_id;
-	column = 4 - (client_id - 1) % 5;
-	return row * 5 + (column + 1);
-}
 
 static void __show_timeval(void) {
 	struct timeval tv_now;

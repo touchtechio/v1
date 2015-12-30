@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/file.h>
 #include "parse.h"
 
 settings_t global_settings;
@@ -157,7 +158,11 @@ int __parse_options(void)
 	settings_t old_settings;
 
 	old_settings = global_settings;
+	
+	int fd;
 
+	fd = open(GLOBAL_OPTIONS_FILE, O_RDONLY);
+	flock(fd, LOCK_EX);
 
 	f = fopen(GLOBAL_OPTIONS_FILE, "r");
 	
@@ -165,6 +170,9 @@ int __parse_options(void)
 		Not a fatal error as we will read options on next iteration
 	*/
 	if (f == NULL) {
+		flock(fd, LOCK_UN);
+		close(fd);
+		printf("File was null... retrying later\n");
 		return 1;
 	}
 
@@ -364,9 +372,13 @@ if (strcmp(line_name, "default_"#x) == 0) { \
 
 
 	if (memcmp(&old_settings, &global_settings, sizeof(settings_t)) == 0) {
+		flock(fd, LOCK_UN);
+		close(fd);
 		return 1;
 	}
 
+	flock(fd, LOCK_UN);
+	close(fd);
 	return 0;
 }
 

@@ -186,7 +186,7 @@ typedef struct send_udp_sock_t {
 	int sock_fd;
 } send_udp_sock_t;
 
-int __create_udp_send_socket(char *ip, int port, send_udp_sock_t *__sock) 
+int __create_udp_send_socket(const char *ip, int port, send_udp_sock_t *__sock) 
 {
 	int rc;
 
@@ -256,21 +256,45 @@ typedef struct map_serv_packet_t {
 typedef enum option_id_t {
 	OID_NONE = 0x0,
 	OID_DUMP_STATS = 0x200,
-	OID_SET_DFLT_BRIGHTNESS,
-	OID_SET_DFLT_CONTRAST,
-	OID_SET_DFLT_SATURATION,
-	OID_SET_DFLT_EXPOSURE_ABSOLUTE,
-	OID_SET_DFLT_FOCUS_ABSOLUTE,
-	OID_SET_DFLT_WHITE_BALANCE_TEMP,
-	OID_SET_DFLT_ZOOM_ABSOLUTE,
-	OID_GENERATE_CONFIG,
+	OID_NEW_SETTINGS,
 } option_id_t;
 
-#define MAX_OPTION_ARGS 6
+
 typedef struct option_packet_t {
 	option_id_t id;
-	int arg[MAX_OPTION_ARGS];
+	camera_settings_t settings[31]; // all settings	
 } option_packet_t;
+
+typedef struct zone_info_t {
+	int client_id;
+	int camera_id;
+} zone_info_t;
+
+zone_info_t zones[31] = {
+	{-1,-1},
+	{5,0}, {4,0}, {3,0}, {2,0}, {1,0},
+	{5,1}, {4,1}, {3,1}, {2,1}, {1,1},
+	{10,0}, {9,0}, {8,0}, {7,0}, {6,0},
+	{10,1}, {9,1}, {8,1}, {7,1}, {6,1},
+	{15,0}, {14,0}, {13,0}, {12,0}, {11,0},
+	{15,1}, {14,1}, {13,1}, {12,1}, {11,1}
+};
+
+int __lookup_zone_id(int client_id, int camera_id) {
+	int row;
+	int column;
+	row = ((client_id-1)/5) * 2 + camera_id;
+	column = 4 - (client_id - 1) % 5;
+	return row * 5 + (column + 1);
+}
+
+int __lookup_client_id(int zone_id) {
+	return zones[zone_id].client_id;
+}
+
+int __lookup_camera_id(int zone_id) {
+	return zones[zone_id].camera_id;
+}
 
 #define OPTION_PORT_CLIENT 1500
 #define OPTION_PORT_MAIN_SERV 1501

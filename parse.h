@@ -25,8 +25,10 @@ typedef struct color_range_t {
 
 typedef struct camera_settings_t {
 	int zoom_absolute;
+
 	int exposure_absolute;
 	int exposure_auto;
+
 	int focus_absolute;
 	int focus_auto;
 
@@ -102,4 +104,6 @@ hub_settings_t *__get_client_settings(int client_id);
 
 
 settings_t *__get_global_settings(void);
+void __init_options(settings_t*);
+
 #endif /* __PARSE_H__ */

@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#if 0
 typedef struct opt_info_t {
 	const char *option_name;
 	option_id_t oid;
@@ -120,3 +121,6 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+#endif
+
+int main(void) {}

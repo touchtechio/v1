@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -31,12 +32,30 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#define WRITE_CFG(x...) fprintf(file, x);
+//#define WRITE_CFG(x...) printf(x);
 
-#define PR_DEF(x) printf("default_%s = %d\n", #x, s->default_setting.x)
+#define PR_DEF(x) if (s->default_setting.x != -1) WRITE_CFG("default_%s = %d\n", #x, s->default_setting.x)
+#define PR_SET(x) if (h->camera_settings[j].x != -1) WRITE_CFG("\t\t%s = %d\n", #x, h->camera_settings[j].x)
 
-static void __generate_cfg_file(settings_t *s, const char *filename) {
+int fd;
+
+static void __generate_cfg_file(settings_t *s) {
 	int i,j;
 	color_range_t *c;
+	FILE *file;
+
+	fd = open(GLOBAL_OPTIONS_FILE, O_WRONLY | O_TRUNC);
+	if (fd<=0) {
+		printf("Failed to open file for writing.. returning\n");
+		return;
+	}
+
+	flock(fd, LOCK_EX);
+
+	do {
+		file = fopen(GLOBAL_OPTIONS_FILE, "w");
+	} while (file == NULL);
 
 	PR_DEF(exposure_auto);
 	PR_DEF(exposure_absolute);
@@ -49,33 +68,34 @@ static void __generate_cfg_file(settings_t *s, const char *filename) {
 	PR_DEF(contrast);
 	PR_DEF(saturation);
 
-	printf("\n\n");
+	WRITE_CFG("\n\n");
 
 	hub_settings_t *h;
 	spotlight_t *spot;
-	getchar();
+
 	for (i=0; i<NUM_COLORS_PER_CAMERA; i++) {
 		c = &s->default_setting.color_range[i];
 
 		if (c->h_low != -1) {
-			printf("default_track_color = %d,%d,%d,%d,%d,%d\n",
+			WRITE_CFG("default_track_color = %d,%d,%d,%d,%d,%d\n",
 					c->h_low, c->h_high,
 					c->s_low, c->s_high,
 					c->v_low, c->v_high);					
 		}
 	}
 
+	int k;
+	WRITE_CFG("\n\n");
 	for (i=0; i<s->num_hubs; i++) {
 
 		h = &s->hub_setting[i];
-		printf("[hub]\n");
-		printf("\tclient_id = %d\n", h->client_id);
-		printf("\n");
+		WRITE_CFG("[hub]\n");
+		WRITE_CFG("\tclient_id = %d\n", h->client_id);
+		WRITE_CFG("\n");
 
-		#define PR_SET(x) if (h->camera_settings[j].x != -1) printf("\t\t%s = %d\n", #x, h->camera_settings[j].x)
 
 		for (j=0; j<NUM_CAMERAS_PER_HUB; j++) { 
-			printf("\t[camera]\n");
+			WRITE_CFG("\t[camera]\n");
 			spot = &h->camera_settings[j].spotlight;
 
 			PR_SET(exposure_auto);
@@ -90,14 +110,31 @@ static void __generate_cfg_file(settings_t *s, const char *filename) {
 			PR_SET(brightness);
 			PR_SET(contrast);
 			PR_SET(saturation);
-			printf("\t\tspotlight = %d,%d,%d,%d\n",spot->x0, spot->y0, spot->x1, spot->y1);
-			printf("\n");
+
+			for (k=0; k<NUM_COLORS_PER_CAMERA; k++) {
+				c = &h->camera_settings[j].color_range[k];
+
+				if (c->h_low != -1) {
+					WRITE_CFG("\t\ttrack_color = %d,%d,%d,%d,%d,%d\n",
+						c->h_low, c->h_high,
+						c->s_low, c->s_high,
+						c->v_low, c->v_high);					
+				}
+			}
+
+			if (spot->x0 != -1) {
+				WRITE_CFG("\t\tspotlight = %d,%d,%d,%d\n",spot->x0, spot->y0, spot->x1, spot->y1);
+			}
+			WRITE_CFG("\n");
 		}
-		printf("\n");
+		WRITE_CFG("\n");
 		
 	}
 
-	printf("\n\n");
+	WRITE_CFG("\n\n");
+	flock(fd, LOCK_UN);
+	close(fd);
+	fclose(file);
 }
 
 
@@ -107,15 +144,12 @@ int main(int argc, char **argv)
 	int rc;
 	int listen_fd;
 	option_packet_t packet;
-	camera_settings_t *dflt;
+	camera_settings_t *s;
 	int gen_cfg_file = 0;
 	int i,j;
 
-	do {
-		rc = __parse_options();
-	} while (rc != 0);
-
 	settings = __get_global_settings();
+	__init_options(settings);
 
 #define VERIFY_SETTING(x) if (settings->hub_setting[i].camera_settings[j].x == settings->default_setting.x) settings->hub_setting[i].camera_settings[j].x = -1;
 
@@ -138,29 +172,41 @@ int main(int argc, char **argv)
 
 	listen_fd = __create_udp_listen_socket(OPTION_PORT_OPT_SERV);
 
-	dflt = &settings->default_setting;
+
 
 	while (1) {
 		gen_cfg_file = 0;
 		__recvfrom(listen_fd, &packet, sizeof(packet));
 
 		switch (packet.id) {
-		case OID_SET_DFLT_BRIGHTNESS:
-			dflt->brightness = packet.arg[0];
-			break;
-		case OID_SET_DFLT_SATURATION:
-			dflt->saturation = packet.arg[0];
-			break;
-		case OID_SET_DFLT_CONTRAST:
-			dflt->contrast = packet.arg[0];
-			break;
-		case OID_GENERATE_CONFIG:
+		case OID_NEW_SETTINGS:
+			printf("Got settings\n");
+			{
+				int i, zone_id, client_id;
+
+				s = &settings->default_setting;
+				memcpy(s, &packet.settings[0], sizeof(camera_settings_t));
+
+				settings->num_hubs = 15;
+				for (i=0; i<30; i++) {
+					hub_settings_t *hub_settings;
+
+					zone_id = i+1;
+					client_id = __lookup_client_id(zone_id);
+					hub_settings  = &settings->hub_setting[client_id - 1];
+					hub_settings->client_id = client_id;
+
+					s = &(hub_settings->camera_settings[__lookup_camera_id(zone_id)]);
+					memcpy(s, &packet.settings[zone_id], sizeof(camera_settings_t));
+				}
+
+			}
 			gen_cfg_file = 1;
 			break;
 		}
 
 		if (gen_cfg_file) {
-			__generate_cfg_file(settings, "none");
+			__generate_cfg_file(settings);
 		}
 	}
 

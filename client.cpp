@@ -377,12 +377,14 @@ void *camera_main(void *data)
 
 	int num_frames= 0;
 	Mat frame;
+	Mat flip_frame;
 	Mat thresh[10];
 	int x,y,w,h;
 	int i;
 	int counter = 0;
 	spotlight_t *spot = 0;
 	int required_area;
+	double fps = 0.0;
 
 	Moments motion_moments;
 	capture_info_t *cap_info;
@@ -442,11 +444,18 @@ void *camera_main(void *data)
 	int spot_x0, spot_x1, spot_y0, spot_y1;
 	int real_cam_width;
 	int real_cam_height;
+	
 	while (do_exit == 0) {
 
 		PRX("[%d] >>> before capture\n", camera_id);
-		(*(p_cap)) >> frame;
 
+#ifdef DO_FLIP
+		(*(p_cap)) >> flip_frame;
+
+		flip(flip_frame, frame, 1);
+#else 
+		(*(p_cap)) >> frame;
+#endif
 
 		GET_TIMESTAMP(&analyzed_info.timestamp_gotframe);
 		PRX("[%d] <<< after capture\n", camera_id);
@@ -489,7 +498,13 @@ void *camera_main(void *data)
 		cvtColor(frame, *hsv_portion, COLOR_BGR2HSV);
 
 		if (do_visual) {
+			char text[30];
 			putText(*rgb_portion, camera_label, Point(50, 50), FONT_HERSHEY_PLAIN, 2, Scalar(0,255,0), 3, 8);
+
+			if (do_show_fps) {
+				sprintf(text, "FPS: %.2f", fps);
+				putText(*rgb_portion, text, Point(50, 80), FONT_HERSHEY_PLAIN, 2, Scalar(255,255,255), 2,8);
+			}
 		}
 		
 		if (do_visual && (do_show_markers || do_show_spot_selector) )
@@ -609,10 +624,10 @@ void *camera_main(void *data)
 			if (area > required_area) {
 				Mat thresh_cpy;
 
-				pos_x = (int)  (motion_moments.m10 / motion_moments.m00) + spot_x0;
+				pos_x = ((int)  (motion_moments.m10 / motion_moments.m00) + spot_x0);
 				pos_y = (int)  (motion_moments.m01 / motion_moments.m00) + spot_y0;
 			
-				area = -1;
+				area = (100.0 * area) / (real_cam_width * real_cam_height);
 			} else {
 				pos_x = -1;
 				pos_y = -1;
@@ -647,14 +662,16 @@ void *camera_main(void *data)
 		num_frames++;
 
 		// Debug FPS display
-		if (do_show_fps && num_frames % 100 == 1) {
+		if (do_show_fps && num_frames % 10 == 1) {
 			unsigned long delta;
 
 			gettimeofday(&tv2, 0);
 
 			delta = (tv2.tv_sec - tv1.tv_sec)* 1000000 + (tv2.tv_usec - tv1.tv_usec);
 
-			printf("FPS[camera=%d; frame_id=%d] = %f\n", camera_id, analyzed_info.frame_id, (num_frames * 1.0) / (delta * 1.0 / 1000000.0));
+			fps = (num_frames * 1.0) / (delta * 1.0 / 1000000.0);
+
+	//		printf("FPS[camera=%d; frame_id=%d] = %f\n", camera_id, analyzed_info.frame_id, fps);
 		}
 
 	}
